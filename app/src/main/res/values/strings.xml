@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">TrophyVision</string>
+    <string name="description">Unggah atau ambil gambar untuk memulai analisis.</string>
+    <string name="copyright">© 2024 Kelompok 4</string>
+</resources>

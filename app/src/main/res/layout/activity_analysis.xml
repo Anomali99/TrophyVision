@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/analysis"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/background"
+    tools:context=".AnalysisActivity">
+
+    <ImageView
+        android:id="@+id/imageView"
+        android:layout_width="match_parent"
+        android:layout_height="350dp"
+        android:background="@color/white"
+        android:scaleType="fitCenter"
+        android:src="@drawable/logoapp" />
+
+    <RelativeLayout
+        android:id="@+id/list_layer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/imageView"
+        android:layout_above="@id/btn_back"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginTop="-50dp"
+        android:padding="10dp"
+        android:background="@drawable/rounded_list_bg">
+
+        <ListView
+            android:id="@+id/listView"
+            android:layout_width="match_parent"
+            android:divider="@android:color/transparent"
+            android:layout_height="match_parent"/>
+
+    </RelativeLayout>
+
+    <LinearLayout
+        android:id="@+id/btn_back"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentBottom="true"
+        android:onClick="back"
+        android:padding="8dp"
+        android:layout_margin="10dp"
+        android:orientation="horizontal"
+        android:background="@drawable/rounded_button_bg">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="Kembali"
+            android:textColor="@color/tertiary"
+            android:fontFamily="@font/poetsen_one"
+            android:textSize="16sp"/>
+
+    </LinearLayout>
+
+</RelativeLayout>
