@@ -2,7 +2,6 @@ package id.my.trophyvision
 
 import android.app.Dialog
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Bundle
@@ -13,15 +12,16 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import android.Manifest
-import android.graphics.Canvas
+import java.io.File
+import android.os.Build
+import android.os.Environment
+import androidx.core.content.FileProvider
 
 class MainActivity : AppCompatActivity() {
     private lateinit var detector: Detector
-    private val REQUEST_CODE = 100
     private val captureId: Int = 73
     private var dialog: Dialog? = null
 
@@ -49,7 +49,7 @@ class MainActivity : AppCompatActivity() {
             insets
         }
 
-        checkPermissions()
+        requestStoragePermissions()
         detector = Detector(baseContext)
         detector.setup()
     }
@@ -59,20 +59,24 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun openCamera(view: View){
-        val intent: Intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+        val photoFile = File(getExternalFilesDir(Environment.DIRECTORY_PICTURES), "photo.jpg")
+        if (!photoFile.parentFile.exists()) {
+            photoFile.parentFile.mkdirs()
+        }
+        val photoURI = FileProvider.getUriForFile(this, "${packageName}.fileprovider", photoFile)
+
+        val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+        intent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI)
         startActivityForResult(intent, captureId)
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == captureId && resultCode == RESULT_OK) {
-            val bitmap = data?.extras?.get("data") as? Bitmap
-            if (bitmap != null) {
-//                val argbBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true)
-                val argbBitmap = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
-                val canvas = Canvas(argbBitmap)
-                canvas.drawBitmap(bitmap, 0f, 0f, null)
-                processing(argbBitmap)
+            val photoFile = File(getExternalFilesDir(Environment.DIRECTORY_PICTURES), "photo.jpg")
+            if (photoFile.exists()) {
+                val bitmap = BitmapFactory.decodeFile(photoFile.absolutePath)
+                processing(bitmap)
             } else {
                 Toast.makeText(this, "Gagal mendapatkan gambar", Toast.LENGTH_SHORT).show()
             }
@@ -109,26 +113,24 @@ class MainActivity : AppCompatActivity() {
         dialog = null
     }
 
-    private fun checkPermissions() {
-        if (ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.READ_EXTERNAL_STORAGE
-            ) != PackageManager.PERMISSION_GRANTED ||
-            ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
+    private fun requestStoragePermissions() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            // Minta izin WRITE_EXTERNAL_STORAGE hanya untuk Android < 10
             ActivityCompat.requestPermissions(
                 this,
                 arrayOf(
                     Manifest.permission.READ_EXTERNAL_STORAGE,
                     Manifest.permission.WRITE_EXTERNAL_STORAGE
                 ),
-                REQUEST_CODE
+                1
             )
         } else {
-            Toast.makeText(this, "Izin sudah diberikan!", Toast.LENGTH_SHORT).show()
+            // Minta izin READ_EXTERNAL_STORAGE untuk Android 10+
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE),
+                1
+            )
         }
     }
 }

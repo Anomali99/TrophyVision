@@ -1,25 +1,33 @@
 package id.my.trophyvision
 
 import android.content.Context
-import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Rect
-import androidx.core.content.ContextCompat
-import android.Manifest
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import android.net.NetworkInfo
+import android.os.Build
+import android.util.Log
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.text.TextRecognition
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import java.util.concurrent.CountDownLatch
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+import kotlin.coroutines.suspendCoroutine
 
 class Detector(
     private val context: Context
 ) {
     private lateinit var yoloModel: YoloDetector
     private lateinit var resnetModel: ResnetDetector
-    private lateinit var ocrModel: TesseractOCR
-    private var hasPermission: Boolean = false
     private var boxPaint: Paint = Paint()
     private var textPaint: Paint = Paint()
     private var textBg: Paint = Paint()
+    private val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
 
     fun setup(){
         val classNames = listOf(
@@ -35,13 +43,6 @@ class Detector(
         yoloModel = YoloDetector(context, "yolo_model.tflite", "yolo_labels.txt")
         yoloModel.setup()
 
-//        hasPermission = hasStoragePermissions()
-        hasPermission =true
-        if (hasPermission) {
-            ocrModel = TesseractOCR(context, "ind.traineddata")
-            ocrModel.setup()
-        }
-
         boxPaint.strokeWidth = 5f
         boxPaint.style = Paint.Style.STROKE
         boxPaint.color = Color.RED
@@ -54,20 +55,6 @@ class Detector(
         textPaint.style = Paint.Style.FILL
         textPaint.color = Color.WHITE
         textPaint.textSize = 50f
-    }
-
-    private fun hasStoragePermissions(): Boolean {
-        val readPermission = ContextCompat.checkSelfPermission(
-            context,
-            Manifest.permission.READ_EXTERNAL_STORAGE
-        )
-        val writePermission = ContextCompat.checkSelfPermission(
-            context,
-            Manifest.permission.WRITE_EXTERNAL_STORAGE
-        )
-
-        return readPermission == PackageManager.PERMISSION_GRANTED &&
-                writePermission == PackageManager.PERMISSION_GRANTED
     }
 
     private fun predictAndCrop(bitmap: Bitmap): Pair<Bitmap, List<Bitmap>> {
@@ -88,32 +75,22 @@ class Detector(
                 val bounds = Rect()
                 textPaint.getTextBounds(text, 0, text.length, bounds)
 
-                // Padding untuk latar belakang teks
                 val padding = 10f
-
-                // Hitung posisi teks dan latar belakang
                 val textBgRight = left + bounds.width() + (padding * 2)
                 val textBgBottom = top + bounds.height() + (padding * 2)
 
                 val textX = left + padding
                 val textY = textBgBottom - padding
 
-                // Gambar bounding box
                 canvas.drawRect(left.toFloat(), top.toFloat(), right.toFloat(), bottom.toFloat(), boxPaint)
-
-                // Gambar latar belakang teks
                 canvas.drawRect(left.toFloat(), top.toFloat(), textBgRight, textBgBottom, textBg)
-
-                // Gambar teks di atas latar belakang
                 canvas.drawText(text, textX, textY, textPaint)
 
-                // Crop bagian gambar berdasarkan bounding box
                 val croppedBitmap =
                     Bitmap.createBitmap(bitmap, left, top, right - left, bottom - top)
                 croppedBitmaps.add(croppedBitmap)
             }
         }
-        // Kembalikan gambar dengan bounding box yang digambar, serta array hasil crop
         return Pair(mutableBitmap, croppedBitmaps)
     }
 
@@ -121,13 +98,33 @@ class Detector(
         val (mutableBitmap, croppedImages) = predictAndCrop(bitmap)
         val classifyResult = mutableListOf<Pair<Bitmap, Pair<String, String?>>>()
 
-        for (img in croppedImages){
+        for (img in croppedImages) {
             val result = resnetModel.classify(img)
-            val text = if (hasPermission) ocrModel.predict(img) else null
+            val text: String? = processImageSync(img)
+
             classifyResult.add(Pair(img, Pair(result, text)))
         }
 
         return Pair(mutableBitmap, classifyResult)
+    }
+
+    fun processImageSync(bitmap: Bitmap): String? {
+        val image = InputImage.fromBitmap(bitmap, 0)
+        var result: String? = null
+        val latch = CountDownLatch(1)
+
+        recognizer.process(image)
+            .addOnSuccessListener { visionText ->
+                result = visionText.text
+                latch.countDown()
+            }
+            .addOnFailureListener { e ->
+                result = null
+                latch.countDown()
+            }
+
+        latch.await()
+        return result
     }
 
 }

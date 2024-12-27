@@ -63,6 +63,5 @@ dependencies {
     implementation("org.pytorch:pytorch_android:1.12.1")
     implementation("org.pytorch:pytorch_android_torchvision:1.12.1")
 
-    implementation("com.google.cloud:google-cloud-translate:2.15.0")
-    implementation("com.rmtheis:tess-two:9.1.0")
+    implementation("com.google.mlkit:text-recognition:16.0.0")
 }

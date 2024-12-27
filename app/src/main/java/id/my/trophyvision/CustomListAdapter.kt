@@ -17,12 +17,10 @@ class CustomListAdapter(
         val rowView: View
         val viewHolder: ViewHolder
 
-        // Use view recycling for better performance
         if (convertView == null) {
             val inflater = context.layoutInflater
             rowView = inflater.inflate(R.layout.custom_list, parent, false)
 
-            // Create a new ViewHolder and store it in the view
             viewHolder = ViewHolder()
             viewHolder.title = rowView.findViewById(R.id.text)
             viewHolder.subtitle = rowView.findViewById(R.id.txt)
@@ -35,17 +33,15 @@ class CustomListAdapter(
             viewHolder = rowView.tag as ViewHolder
         }
 
-        // Get the current pair
         val (cropImg, results) = classifyResult[position]
         val (classify, text) = results
 
-        // Set the values to the views
         viewHolder.title.text = classify
         viewHolder.imageView.setImageBitmap(cropImg)
         viewHolder.noText.text = (position + 1).toString()
 
         if (text != null){
-            viewHolder.subtitle.text = text
+            viewHolder.subtitle.text = text.replace("\n", " ").replace("\r", "")
         } else {
             viewHolder.subtitle.visibility = View.GONE
         }
@@ -53,7 +49,6 @@ class CustomListAdapter(
         return rowView
     }
 
-    // ViewHolder pattern for better performance and cleaner code
     private class ViewHolder {
         lateinit var title: TextView
         lateinit var subtitle: TextView
